@@ -30,20 +30,9 @@ struct Board
 int direction = 1;
 int ratio_temp = 0;
 float point_temp = -1;
-float y_value = 0;
+int board_size = 1;
 
-auto board = Board{
-    .horizontal_lines = {
-        Line{
-            .start = {{point_temp, y_value}, {0.f, 1.f, 0.f}},
-            .end = {{1.0f, y_value}, {1.f, 0.f, 0.f}}}
-        //  Line{
-        //      .start = {{point_temp, 0.5f}, {1.f, 0.f, 0.f}},
-        //      .end = {{1.0f, 0.5f}, {0.f, 1.f, 0.f}}},
-        //  Line{
-        //      .start = {{point_temp, -0.5f}, {1.f, 0.f, 0.f}},
-        //      .end = {{1.0f, -0.5f}, {0.f, 1.f, 0.f}}}}
-    }};
+auto board = Board{};
 
 static const char *vertex_shader_text =
     "#version 330\n"
@@ -66,32 +55,20 @@ static const char *fragment_shader_text =
     "    fragment = vec4(color, 1.0);\n"
     "}\n";
 
-static void error_callback(int error, const char *description)
+void resize_board(Board *board, int new_size)
 {
-  fprintf(stderr, "Error: %s\n", description);
-}
-
-void resize_board(Board *board, int bump_amount)
-{
-  auto temp = board->horizontal_lines[0];
-  // temp.start.position = {-1.f, 0.5f};
-  // temp.start.position = {};
-  int randVal = rand();
-  int rand_sign = rand() & 0x1;
-  rand_sign = rand_sign == 0 ? -1 : 1;
-  int temp1 = 0x007fffff;
-  // int temp1 = 0x807fffff;
-  float temp2 = ((randVal & temp1) / (float)temp1) * rand_sign;
-
-  temp.start = {{-1.f, temp2}, {0.f, 1.f, 0.f}};
-  board->horizontal_lines.push_back(temp);
-  // board->horizontal_lines = {
-  // Line{
-  //     .start = {{point_temp, y_value}, {0.f, 1.f, 0.f}},
-  //     .end = {{1.0f, y_value}, {1.f, 0.f, 0.f}}},
-  // Line{
-  //     .start = {{point_temp, 0.5f}, {1.f, 0.f, 0.f}},
-  //     .end = {{1.0f, 0.5f}, {0.f, 1.f, 0.f}}}};
+  board->horizontal_lines = std::vector<Line>{};
+  auto section_size = 2.f / new_size;
+  auto top = -1.0f;
+  auto current_y = top;
+  for (int i = 0; i < new_size; i++)
+  {
+    current_y += section_size;
+    auto line = Line{
+        .start = {.position = {-1, current_y}, .color = {0, 1, 0}},
+        .end = {.position = {1, current_y}, .color = {1, 0, 0}}};
+    board->horizontal_lines.push_back(line);
+  }
 }
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -114,28 +91,25 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
   }
   else if (key == GLFW_KEY_UP)
   {
-    y_value += .01f;
+    board_size++;
+    resize_board(&board, board_size);
   }
   else if (key == GLFW_KEY_DOWN)
   {
-    y_value -= .01f;
+    board_size--;
+    resize_board(&board, board_size);
   }
   else if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_R)
   {
-    resize_board(&board, 1);
     puts("enter...");
-    // direction *= -1;
-    // ratioTemp -= 1;
   }
 }
 
-time_t t;
-
 int main(void)
 {
-  // srand(time(&t));
   srand(time(0));
-  glfwSetErrorCallback(error_callback);
+  glfwSetErrorCallback([](int error, const char *description) -> void
+                       { fprintf(stderr, "Error: %s\n", description); });
 
   if (!glfwInit())
     exit(EXIT_FAILURE);
@@ -175,6 +149,7 @@ int main(void)
   const GLint vpos_location = glGetAttribLocation(program, "vPos");
   const GLint vcol_location = glGetAttribLocation(program, "vCol");
 
+  resize_board(&board, board_size);
   while (!glfwWindowShouldClose(window))
   {
     int width, height;
@@ -188,7 +163,7 @@ int main(void)
 
     mat4x4 m, p, mvp;
     mat4x4_identity(m);
-    // mat4x4_rotate_Z(m, m, glfwGetTime() * direction);
+    mat4x4_rotate_Z(m, m, glfwGetTime() * direction);
     mat4x4_ortho(p, -ratio, ratio, -1.f, 1.f, 1.f, -1.f);
     mat4x4_mul(mvp, p, m);
 
@@ -200,21 +175,6 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     auto vertices_byte_size = sizeof(Line) * board.horizontal_lines.size();
     auto vertices = &board.horizontal_lines[0];
-    // Vertex vertices[] =
-    //     {
-    //         // {{-1.0f, 0.f}, {0.f, 1.f, 0.f}},
-    //         {{point_temp, y_value}, {0.f, 1.f, 0.f}},
-    //         {{1.0f, y_value}, {1.f, 0.f, 0.f}}};
-    // do_nothing(&vertices);
-    // auto vert_pointer = &vertices;
-    // const Vertex *vert_pointer2 = vertices;
-    // {{0.f, 0.6f}, {0.f, 1.f, 0.f}},
-    // {{0.f, -0.4f}, {0.f, 1.f, 1.f}}};
-    // const int temp = sizeof(vertices);
-    // const int temp2 = sizeof(*vert_pointer);
-    // const int temp3 = sizeof(*vert_pointer2);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(lines[0]), &lines[0], GL_STATIC_DRAW);
     glBufferData(GL_ARRAY_BUFFER, vertices_byte_size, vertices, GL_STATIC_DRAW);
 
     GLuint vertex_array;
