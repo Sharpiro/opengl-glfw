@@ -11,6 +11,7 @@
 #include <vector>
 #include <time.h>
 #include "board.h"
+#include "tools.hpp"
 
 int direction = 1;
 int ratio_temp = 0;
@@ -76,17 +77,18 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
   }
 }
 
-void draw_lines(std::vector<Line> *lines, GLint vpos_location, GLint vcol_location)
+void draw_lines(
+    std::vector<Line> *lines,
+    GLint vpos_location,
+    GLint vcol_location,
+    GLint vertex_buffer,
+    GLint vertex_array)
 {
-  GLuint vertex_buffer;
-  glGenBuffers(1, &vertex_buffer);
   glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
   auto vertices_byte_size = sizeof(Line) * lines->size();
   auto vertices = &(*lines)[0];
   glBufferData(GL_ARRAY_BUFFER, vertices_byte_size, vertices, GL_STATIC_DRAW);
 
-  GLuint vertex_array;
-  glGenVertexArrays(1, &vertex_array);
   glBindVertexArray(vertex_array);
   glEnableVertexAttribArray(vpos_location);
   glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
@@ -147,6 +149,12 @@ int main(void)
 
   resize_board(&board, board_size);
   resize_board_vert(&board, board_size);
+
+  GLuint vertex_buffer;
+  glGenBuffers(1, &vertex_buffer);
+
+  GLuint vertex_array;
+  glGenVertexArrays(1, &vertex_array);
   while (!glfwWindowShouldClose(window))
   {
     int width, height;
@@ -167,43 +175,8 @@ int main(void)
     glUseProgram(program);
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat *)&mvp);
 
-    // GLuint vertex_buffer;
-    // glGenBuffers(1, &vertex_buffer);
-    // glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    // auto vertices_byte_size = sizeof(Line) * board.horizontal_lines.size();
-    // auto vertices = &board.horizontal_lines[0];
-    // glBufferData(GL_ARRAY_BUFFER, vertices_byte_size, vertices, GL_STATIC_DRAW);
-
-    // GLuint vertex_array;
-    // glGenVertexArrays(1, &vertex_array);
-    // glBindVertexArray(vertex_array);
-    // glEnableVertexAttribArray(vpos_location);
-    // glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
-    //                       sizeof(Vertex), (void *)offsetof(Vertex, position));
-    // glEnableVertexAttribArray(vcol_location);
-    // glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
-    //                       sizeof(Vertex), (void *)offsetof(Vertex, color));
-
-    // glBindVertexArray(vertex_array);
-    // // glDrawArrays(GL_POINTS, 0, 3);
-    // // glDrawArrays(GL_TRIANGLES, 0, 3);
-    // glDrawArrays(GL_LINES, 0, board.horizontal_lines.size() * 2);
-    // auto temp = std::vector<int>{1, 2, 3};
-    // std::ranges
-    // std::ranges
-    auto vec1 = std::vector<int>{1, 2};
-    auto vec2 = std::vector<int>{3, 4};
-    auto vec3 = std::vector<int>(vec1);
-    vec3.insert(vec3.end(), vec2.begin(), vec2.end());
-    // std::ranges::views
-    // std::ranges::copy;
-    // std::ranges::move;
-    // auto temp = std::vector<int>(board.horizontal_lines.begin(), board.horizontal_lines.end());
-    auto all_lines = std::vector<Line>(board.horizontal_lines);
-    all_lines.insert(all_lines.end(), board.vertical_lines.begin(), board.vertical_lines.end());
-    draw_lines(&all_lines, vpos_location, vcol_location);
-    // draw_lines(&board.horizontal_lines, vpos_location, vcol_location);
-    // draw_lines(&board.vertical_lines, vpos_location, vcol_location);
+    auto all_lines = concat_vector(&board.horizontal_lines, &board.vertical_lines);
+    draw_lines(&all_lines, vpos_location, vcol_location, vertex_buffer, vertex_array);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
