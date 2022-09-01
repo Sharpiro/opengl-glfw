@@ -3,7 +3,6 @@
 void resize_board(Board *board, int new_size)
 {
   board->horizontal_lines = std::vector<Line>{};
-  // auto section_size = 2.f / new_size;
   if (new_size < 1)
   {
     return;

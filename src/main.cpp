@@ -1,8 +1,9 @@
 // cspell:disable
 
 #define GLAD_GL_IMPLEMENTATION
-#include <glad/gl.h>
 #define GLFW_INCLUDE_NONE
+
+#include "gl.hpp"
 #include <GLFW/glfw3.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -10,15 +11,19 @@
 #include <math.h>
 #include <vector>
 #include <time.h>
+#include <sys/time.h>
 #include "board.h"
 #include "tools.hpp"
 
-int direction = 1;
-int ratio_temp = 0;
-float point_temp = -1;
-int board_size = 8;
+// int direction = 1;
+// int ratio_temp = 0;
+// float point_temp = -1;
 
-auto board = Board{};
+auto board = Board{.size = 8};
+auto point_vertices = std::vector<Vertex>{
+    {.position = {0, 0}, .color = {1, 0, 0}},
+    {.position = {0, .5}, .color = {0, 0, 1}},
+};
 
 static const char *vertex_shader_text =
     "#version 330\n"
@@ -43,33 +48,33 @@ static const char *fragment_shader_text =
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-  if (action != GLFW_PRESS)
-  {
-    return;
-  }
+  // if (action != GLFW_PRESS)
+  // {
+  //   return;
+  // }
   if (key == GLFW_KEY_ESCAPE)
   {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
   }
   else if (key == GLFW_KEY_LEFT)
   {
-    point_temp -= .01f;
+    // point_temp -= .01f;
   }
   else if (key == GLFW_KEY_RIGHT)
   {
-    point_temp += .01f;
+    // point_temp += .01f;
   }
   else if (key == GLFW_KEY_UP)
   {
-    board_size++;
-    resize_board(&board, board_size);
-    resize_board_vert(&board, board_size);
+    board.size++;
+    resize_board(&board, board.size);
+    resize_board_vert(&board, board.size);
   }
   else if (key == GLFW_KEY_DOWN)
   {
-    board_size--;
-    resize_board(&board, board_size);
-    resize_board_vert(&board, board_size);
+    board.size--;
+    resize_board(&board, board.size);
+    resize_board_vert(&board, board.size);
   }
   else if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_R)
   {
@@ -77,30 +82,80 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
   }
 }
 
-void draw_lines(
-    std::vector<Line> *lines,
-    GLint vpos_location,
-    GLint vcol_location,
-    GLint vertex_buffer,
-    GLint vertex_array)
+void gl_draw(
+    std::vector<Vertex> *vertices,
+    DrawContext line_context,
+    GLenum mode)
 {
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-  auto vertices_byte_size = sizeof(Line) * lines->size();
-  auto vertices = &(*lines)[0];
-  glBufferData(GL_ARRAY_BUFFER, vertices_byte_size, vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, line_context.vertex_buffer);
+  auto vertices_byte_size = sizeof(Vertex) * vertices->size();
+  auto first_vertex = &(*vertices)[0];
+  glBufferData(GL_ARRAY_BUFFER, vertices_byte_size, first_vertex, GL_STATIC_DRAW);
 
-  glBindVertexArray(vertex_array);
-  glEnableVertexAttribArray(vpos_location);
-  glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
+  glBindVertexArray(line_context.vertex_array);
+  glEnableVertexAttribArray(line_context.vpos_location);
+  glVertexAttribPointer(line_context.vpos_location, 2, GL_FLOAT, GL_FALSE,
                         sizeof(Vertex), (void *)offsetof(Vertex, position));
-  glEnableVertexAttribArray(vcol_location);
-  glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
+  glEnableVertexAttribArray(line_context.vcol_location);
+  glVertexAttribPointer(line_context.vcol_location, 3, GL_FLOAT, GL_FALSE,
                         sizeof(Vertex), (void *)offsetof(Vertex, color));
 
-  // glBindVertexArray(vertex_array);
-  // glDrawArrays(GL_POINTS, 0, 3);
-  // glDrawArrays(GL_TRIANGLES, 0, 3);
-  glDrawArrays(GL_LINES, 0, lines->size() * 2);
+  glDrawArrays(mode, 0, vertices->size());
+}
+
+std::vector<Vertex> get_line_vertices()
+{
+  auto all_lines = concat_vector(&board.horizontal_lines, &board.vertical_lines);
+  auto all_vertices = std::vector<Vertex>();
+  for (auto l : all_lines)
+  {
+    all_vertices.push_back(l.start);
+    all_vertices.push_back(l.end);
+  }
+  return all_vertices;
+}
+
+std::vector<Vertex> get_triangle_vertices(float scaler)
+{
+  auto triangle_count = 32;
+  float max_angle = (M_PI * 2) / triangle_count;
+  float current_angle = 0;
+  auto triangles = std::vector<Triangle>();
+  for (auto i = 0; i < triangle_count; i++)
+  {
+    auto start = Vertex{
+        .position = {cos(current_angle) * scaler, sin(current_angle) * scaler},
+        .color = {0, 1, 0}};
+    auto end = Vertex{
+        .position = {cos(current_angle + max_angle) * scaler, sin(current_angle + max_angle) * scaler},
+        .color = {0, 1, 0}};
+    auto triangle = Triangle{
+        .a = {.position = {0, 0}, .color = {0, 1, 0}},
+        start,
+        end};
+    current_angle += max_angle;
+    triangles.push_back(triangle);
+  }
+
+  auto circle = ChunkyCircle{
+      .triangles = triangles};
+  auto all_vertices = std::vector<Vertex>();
+  for (auto &l : circle.triangles)
+  {
+    all_vertices.push_back(l.a);
+    all_vertices.push_back(l.b);
+    all_vertices.push_back(l.c);
+  }
+  return all_vertices;
+}
+
+void update_points(double current_time, float scaler)
+{
+  auto moving_point = &point_vertices[1];
+  double x = cos(current_time) * scaler;
+  double y = sin(current_time) * scaler;
+  moving_point->position[0] = x;
+  moving_point->position[1] = y;
 }
 
 int main(void)
@@ -116,7 +171,7 @@ int main(void)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(640, 480, "glfw", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(800, 800, "glfw", NULL, NULL);
   if (!window)
   {
     glfwTerminate();
@@ -147,14 +202,12 @@ int main(void)
   const GLint vpos_location = glGetAttribLocation(program, "vPos");
   const GLint vcol_location = glGetAttribLocation(program, "vCol");
 
-  resize_board(&board, board_size);
-  resize_board_vert(&board, board_size);
+  resize_board(&board, board.size);
+  resize_board_vert(&board, board.size);
 
-  GLuint vertex_buffer;
-  glGenBuffers(1, &vertex_buffer);
-
-  GLuint vertex_array;
-  glGenVertexArrays(1, &vertex_array);
+  auto line_context = get_draw_context(vpos_location, vcol_location);
+  auto triangle_context = get_draw_context(vpos_location, vcol_location);
+  auto point_context = get_draw_context(vpos_location, vcol_location);
   while (!glfwWindowShouldClose(window))
   {
     int width, height;
@@ -175,11 +228,23 @@ int main(void)
     glUseProgram(program);
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat *)&mvp);
 
-    auto all_lines = concat_vector(&board.horizontal_lines, &board.vertical_lines);
-    draw_lines(&all_lines, vpos_location, vcol_location, vertex_buffer, vertex_array);
+    auto line_vertices = get_line_vertices();
+    gl_draw(&line_vertices, line_context, GL_LINES);
+
+    float scaler = .25;
+    auto triangle_vertices = get_triangle_vertices(scaler);
+    gl_draw(&triangle_vertices, triangle_context, GL_TRIANGLES);
+
+    glPointSize(10);
+    gl_draw(&point_vertices, point_context, GL_POINTS);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
+
+    timeval time;
+    gettimeofday(&time, nullptr);
+    auto current_time = time.tv_sec + (double)time.tv_usec / 1000 / 1000;
+    update_points(current_time, scaler);
   }
 
   glfwDestroyWindow(window);

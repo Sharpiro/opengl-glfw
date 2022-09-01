@@ -1,5 +1,5 @@
   # -std=c++20 \
 g++ -Wall -g -pthread \
   $(pkg-config --cflags glfw3) \
-  -o main.out src/main.cpp src/board.cpp \
+  -o main.out src/main.cpp src/board.cpp src/gl.cpp \
   $(pkg-config --static --libs glfw3)

@@ -1,5 +1,14 @@
+#pragma once
+
 #include "vec.h"
 #include <vector>
+
+struct Triangle
+{
+  Vertex a;
+  Vertex b;
+  Vertex c;
+};
 
 struct Line
 {
@@ -7,8 +16,14 @@ struct Line
   Vertex end;
 };
 
+struct ChunkyCircle
+{
+  std::vector<Triangle> triangles;
+};
+
 struct Board
 {
+  int size;
   std::vector<Line> horizontal_lines;
   std::vector<Line> vertical_lines;
 };
