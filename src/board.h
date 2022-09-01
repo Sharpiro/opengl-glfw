@@ -16,14 +16,18 @@ struct Line
   Vertex end;
 };
 
-struct ChunkyCircle
+struct Circle
 {
   std::vector<Triangle> triangles;
 };
 
 struct Board
 {
+  // int squares[4][4];
+  int squares[16];
   int size;
+  int circle_index;
+  float draw_bounds;
   std::vector<Line> horizontal_lines;
   std::vector<Line> vertical_lines;
 };
