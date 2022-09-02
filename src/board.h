@@ -21,13 +21,19 @@ struct Circle
   std::vector<Triangle> triangles;
 };
 
+struct Point
+{
+  double x;
+  double y;
+};
+
 struct Board
 {
   // int squares[4][4];
-  int squares[16];
+  // int squares[16];
   int size;
   int circle_index;
-  float draw_bounds;
+  float gl_draw_bounds;
   std::vector<Line> horizontal_lines;
   std::vector<Line> vertical_lines;
 };
@@ -35,3 +41,5 @@ struct Board
 void resize_board(Board *board, int new_size);
 
 void resize_board_vert(Board *board, int new_size);
+
+void board_handle_click(Board *board, Point window, Point click);

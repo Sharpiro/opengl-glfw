@@ -15,9 +15,11 @@
 #include "board.h"
 #include "tools.hpp"
 
+auto window_x = 500;
+auto window_y = 500;
 auto cursor_x = 0.0;
 auto cursor_y = 0.0;
-auto board = Board{.size = 4, .circle_index = 0, .draw_bounds = .5};
+auto board = Board{.size = 4, .circle_index = 0, .gl_draw_bounds = .5};
 auto scaler = 1.f / (board.size * 2);
 // auto offset_x = -board.draw_bounds + scaler;
 // auto offset_y = -board.draw_bounds + scaler;
@@ -64,13 +66,14 @@ static void mouse_click_callback(GLFWwindow *window, int button, int action, int
   }
   if (button == GLFW_MOUSE_BUTTON_1)
   {
-    // offset_y += scaler * 2;
   }
   else if (button == GLFW_MOUSE_BUTTON_2)
   {
-    // offset_y -= scaler * 2;
   }
-  printf("clicking at (%f, %f)\n", cursor_x, cursor_y);
+  board_handle_click(
+      &board,
+      Point{(double)window_x, (double)window_y},
+      Point{cursor_x, cursor_y});
 }
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -79,33 +82,53 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
   {
     return;
   }
+  bool is_ctrl_pressed = mods & GLFW_MOD_CONTROL;
   if (key == GLFW_KEY_ESCAPE)
   {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
   }
   else if (key == GLFW_KEY_LEFT)
   {
-    board.circle_index--;
-    // offset_x -= scaler * 2;
+    if (board.circle_index > 0)
+    {
+      board.circle_index--;
+    }
   }
   else if (key == GLFW_KEY_RIGHT)
   {
-    board.circle_index++;
-    // offset_x += scaler * 2;
-  }
-  else if (key == GLFW_KEY_UP)
-  {
-    // offset_y += scaler * 2;
-    // board.size++;
-    // resize_board(&board, board.size);
-    // resize_board_vert(&board, board.size);
+    if (board.circle_index < (board.size * board.size) - 1)
+    {
+      board.circle_index++;
+    }
   }
   else if (key == GLFW_KEY_DOWN)
   {
-    // offset_y -= scaler * 2;
-    // board.size--;
-    // resize_board(&board, board.size);
-    // resize_board_vert(&board, board.size);
+    if (board.circle_index + board.size <= (board.size * board.size) - 1)
+    {
+      board.circle_index += board.size;
+    }
+  }
+  else if (key == GLFW_KEY_UP)
+  {
+    if (board.circle_index - board.size >= 0)
+    {
+      board.circle_index -= board.size;
+    }
+  }
+  else if (is_ctrl_pressed && key == GLFW_KEY_MINUS)
+  {
+    if (board.size > 1)
+    {
+      board.size--;
+      resize_board(&board, board.size);
+      resize_board_vert(&board, board.size);
+    }
+  }
+  else if (is_ctrl_pressed && key == GLFW_KEY_EQUAL)
+  {
+    board.size++;
+    resize_board(&board, board.size);
+    resize_board_vert(&board, board.size);
   }
   else if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_R)
   {
@@ -200,7 +223,7 @@ int main(void)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(800, 800, "glfw", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(window_x, window_y, "glfw", NULL, NULL);
   if (!window)
   {
     glfwTerminate();
@@ -270,13 +293,15 @@ int main(void)
     auto line_vertices = get_line_vertices();
     gl_draw(&line_vertices, line_context, GL_LINES);
 
-    auto offset_x = -board.draw_bounds + scaler;
-    auto offset_y = board.draw_bounds - scaler;
+    auto grid_x = board.circle_index % board.size;
+    auto grid_y = (int)floor(board.circle_index / board.size);
+    auto offset_x = -board.gl_draw_bounds + scaler + (scaler * 2 * grid_x);
+    auto offset_y = board.gl_draw_bounds - scaler - (scaler * 2 * grid_y);
     mat4x4_translate(model_view_proj, offset_x, offset_y, 0);
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat *)&model_view_proj);
 
-    auto triangle_vertices = get_circle_vertices(scaler);
-    gl_draw(&triangle_vertices, triangle_context, GL_TRIANGLES);
+    auto circle_vertices = get_circle_vertices(scaler);
+    gl_draw(&circle_vertices, triangle_context, GL_TRIANGLES);
 
     glPointSize(10);
     gl_draw(&point_vertices, point_context, GL_POINTS);
