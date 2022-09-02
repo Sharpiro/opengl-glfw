@@ -47,7 +47,25 @@ void resize_board_vert(Board *board, int new_size)
   board->horizontal_lines.push_back(line);
 }
 
-void board_handle_click(Board *board, Point window, Point click)
+static int get_square_index(int board_size, int x_start, int x_end,
+                            int y_start, int y_end, int board_pixels_x,
+                            int board_pixels_y, Point click)
+{
+  if (click.x < x_start || click.x > x_end)
+    return -1;
+  if (click.y < y_start || click.y > y_end)
+    return -1;
+
+  auto square_x = (int)floor((click.x - x_start) / board_pixels_x);
+  auto square_y = (int)floor((click.y - y_start) / board_pixels_y);
+  printf("window location (%f, %f)\n", click.x, click.y);
+  printf("board  location (%d, %d)\n", square_x, square_y);
+
+  auto click_index = square_y * board_size + square_x;
+  return click_index;
+}
+
+void board_handle_click(Board *board, Point window, Click click)
 {
   auto x_pixels = (float)window.x * board->gl_draw_bounds;
   auto y_pixels = (float)window.y * board->gl_draw_bounds;
@@ -55,21 +73,25 @@ void board_handle_click(Board *board, Point window, Point click)
   auto x_end = x_start + x_pixels;
   auto y_start = y_pixels / 2;
   auto y_end = y_start + y_pixels;
-  if (click.x < x_start || click.x > x_end)
-    return;
-  if (click.y < y_start || click.y > y_end)
-    return;
-
   auto square_pixels_x = floor(x_pixels / board->size);
   auto square_pixels_y = floor(y_pixels / board->size);
 
-  auto square_x = (int)floor((click.x - x_start) / square_pixels_x);
-  auto square_y = (int)floor((click.y - y_start) / square_pixels_y);
-  printf("clicking at (%f, %f)\n", click.x, click.y);
-  printf("clicking at (%d, %d)\n", square_x, square_y);
-
-  auto click_index = square_y * board->size + square_x;
-  auto has_circle = click_index == board->circle_index;
+  auto click_start_index = get_square_index(board->size, x_start, x_end, y_start, y_end,
+                                            square_pixels_x, square_pixels_y,
+                                            click.start);
+  auto click_end_index = get_square_index(board->size, x_start, x_end, y_start, y_end,
+                                          square_pixels_x, square_pixels_y,
+                                          click.end);
+  if (click_start_index == -1 || click_end_index == -1)
+  {
+    puts("outside board");
+    return;
+  }
+  if (click_start_index == board->circle_index)
+  {
+    board->circle_index = click_end_index;
+  }
+  auto has_circle = click_end_index == board->circle_index;
   printf("has circle: %s\n", has_circle ? "true" : "false");
 }
 
@@ -78,3 +100,8 @@ void board_handle_click(Board *board, Point window, Point click)
 // auto y = 2.f / window.y;
 // auto xx = x * click.x - 1;
 // auto yy = (y * click.y - 1) * -1;
+
+bool point_equals(Point a, Point b)
+{
+  return a.x == b.x && a.y == b.y;
+}

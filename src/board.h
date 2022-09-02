@@ -27,6 +27,12 @@ struct Point
   double y;
 };
 
+struct Click
+{
+  Point start;
+  Point end;
+};
+
 struct Board
 {
   // int squares[4][4];
@@ -42,4 +48,6 @@ void resize_board(Board *board, int new_size);
 
 void resize_board_vert(Board *board, int new_size);
 
-void board_handle_click(Board *board, Point window, Point click);
+void board_handle_click(Board *board, Point window, Click click);
+
+bool point_equals(Point pressed_cursor, Point cursor);

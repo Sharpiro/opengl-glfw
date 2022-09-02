@@ -15,14 +15,11 @@
 #include "board.h"
 #include "tools.hpp"
 
-auto window_x = 500;
-auto window_y = 500;
-auto cursor_x = 0.0;
-auto cursor_y = 0.0;
+auto window_size = Point{500, 500};
+auto cursor = Point{0.0, 0.0};
+auto pressed_cursor = Point{0.0, 0.0};
 auto board = Board{.size = 4, .circle_index = 0, .gl_draw_bounds = .5};
 auto scaler = 1.f / (board.size * 2);
-// auto offset_x = -board.draw_bounds + scaler;
-// auto offset_y = -board.draw_bounds + scaler;
 auto point_vertices = std::vector<Vertex>{
     {.color = {1, 0, 0}},
     {.color = {0, 0, 1}},
@@ -49,35 +46,47 @@ static const char *fragment_shader_text =
     "    fragment = vec4(color, 1.0);\n"
     "}\n";
 
-// glfwSetWindowPosCallback
-// glfwGetCursorPos(GLFWwindow* window, double* xpos, double* ypos);
-// GLFWwindow* window, double xpos, double ypos
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos)
 {
-  cursor_x = xpos;
-  cursor_y = ypos;
+  cursor = {xpos, ypos};
 }
 
 static void mouse_click_callback(GLFWwindow *window, int button, int action, int mods)
 {
-  if (action != GLFW_PRESS)
+  if (action == GLFW_PRESS)
   {
-    return;
+    pressed_cursor = cursor;
+    // if (button == GLFW_MOUSE_BUTTON_1) { }
   }
-  if (button == GLFW_MOUSE_BUTTON_1)
+  else if (action == GLFW_RELEASE)
   {
+    // printf("released, (%f, %f), (%f, %f)\n",
+    //        pressed_cursor.x, pressed_cursor.y,
+    //        cursor.x, cursor.y);
+    auto click = Click{.start = pressed_cursor, .end = cursor};
+    board_handle_click(
+        &board,
+        window_size,
+        click);
   }
-  else if (button == GLFW_MOUSE_BUTTON_2)
+}
+
+void mouse_drop_callback(GLFWwindow *window, int path_count, const char *paths[])
+{
+  // paths is an n sized array of pointers to char
+  for (auto i = 0; i < path_count; i++)
   {
+    auto path = paths[i];
+    puts(path);
   }
-  board_handle_click(
-      &board,
-      Point{(double)window_x, (double)window_y},
-      Point{cursor_x, cursor_y});
 }
 
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+  if (action == GLFW_REPEAT)
+  {
+    puts("repeated");
+  }
   if (action != GLFW_PRESS)
   {
     return;
@@ -89,14 +98,16 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
   }
   else if (key == GLFW_KEY_LEFT)
   {
-    if (board.circle_index > 0)
+    // if (board.circle_index > 0)
+    if (board.circle_index % board.size != 0)
     {
       board.circle_index--;
     }
   }
   else if (key == GLFW_KEY_RIGHT)
   {
-    if (board.circle_index < (board.size * board.size) - 1)
+    // if (board.circle_index < (board.size * board.size) - 1)
+    if (board.circle_index % board.size < board.size - 1)
     {
       board.circle_index++;
     }
@@ -223,7 +234,7 @@ int main(void)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow *window = glfwCreateWindow(window_x, window_y, "glfw", NULL, NULL);
+  GLFWwindow *window = glfwCreateWindow(window_size.x, window_size.y, "glfw", NULL, NULL);
   if (!window)
   {
     glfwTerminate();
@@ -234,6 +245,7 @@ int main(void)
   glfwSetKeyCallback(window, key_callback);
   glfwSetMouseButtonCallback(window, mouse_click_callback);
   glfwSetCursorPosCallback(window, cursor_pos_callback);
+  glfwSetDropCallback(window, mouse_drop_callback);
 
   glfwMakeContextCurrent(window);
   gladLoadGL(glfwGetProcAddress);
