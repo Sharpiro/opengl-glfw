@@ -1,0 +1,17 @@
+---
+#BasedOnStyle: WebKit
+IndentWidth: 2
+TabWidth: 2
+ColumnLimit: 80
+PointerAlignment: Right
+AlignAfterOpenBracket: BlockIndent
+ExperimentalAutoDetectBinPacking: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+
+# ---
+# Language: Cpp
+# DerivePointerAlignment: false
+# PointerAlignment: Left
+# ---
