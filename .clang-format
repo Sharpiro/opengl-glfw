@@ -1,17 +1,38 @@
 ---
-#BasedOnStyle: WebKit
+#BasedOnStyle: Chromium
+#TabWidth: 2
 IndentWidth: 2
-TabWidth: 2
-ColumnLimit: 80
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+#ColumnLimit: 80
 PointerAlignment: Right
+DerivePointerAlignment: false
 AlignAfterOpenBracket: BlockIndent
 ExperimentalAutoDetectBinPacking: false
 AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
 BinPackArguments: false
 BinPackParameters: false
-
-# ---
-# Language: Cpp
-# DerivePointerAlignment: false
-# PointerAlignment: Left
-# ---
+AlignArrayOfStructures: None
+#AlwaysBreakAfterDefinitionReturnType: None
+#AlwaysBreakAfterReturnType: None
+#IndentWrappedFunctionNames: false
+PenaltyReturnTypeOnItsOwnLine: 1000000
+# PenaltyBreakOpenParenthesis: 0
+# PenaltyBreakBeforeFirstCallParameter: 0
+# PenaltyBreakAssignment: 1000000
+# PenaltyBreakBeforeFirstCallParameter: 1000000
+AlwaysBreakBeforeMultilineStrings: true
+# js only right now
+# InsertTrailingCommas: Wrapped
+# Example of usage:
+BreakBeforeBraces: Attach
+# BreakBeforeBraces: Custom
+# BraceWrapping:
+#   AfterEnum: true
+#   AfterStruct: false
+#   SplitEmptyFunction: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+# BreakBeforeBinaryOperators: All
+# AlignOperands: Align

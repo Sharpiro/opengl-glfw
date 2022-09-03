@@ -3,21 +3,21 @@
 #define GLAD_GL_IMPLEMENTATION
 #define GLFW_INCLUDE_NONE
 
+#include "board.h"
 #include "gl.hpp"
+#include "tools.hpp"
 #include <GLFW/glfw3.h>
-#include <stdlib.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <math.h>
-#include <vector>
-#include <time.h>
+#include <stdlib.h>
 #include <sys/time.h>
-#include "board.h"
-#include "tools.hpp"
+#include <time.h>
+#include <vector>
 
-auto window_size = Point{ 600, 600 };
-auto cursor = Point{ 0.0, 0.0 };
-auto pressed_cursor = Point{ 0.0, 0.0 };
+auto window_size = Point{600, 600};
+auto cursor = Point{0.0, 0.0};
+auto pressed_cursor = Point{0.0, 0.0};
 // auto board_size = 4;
 auto board = Board{
   // .size = board_size,
@@ -25,7 +25,7 @@ auto board = Board{
   // .squares = std::vector<Square>(board_size * board_size),
   .circle_index = 0,
   .circle_color = {0.f, 1.f, 0.f},
-  .gl_draw_bounds = .5
+  .gl_draw_bounds = .5,
 };
 auto scaler = 1.f / (board.size * 2);
 auto point_vertices = std::vector<Vertex>{
@@ -33,145 +33,153 @@ auto point_vertices = std::vector<Vertex>{
   {.color = {0, 0, 1}},
 };
 
-static const char* vertex_shader_text =
-"#version 330\n"
-"uniform mat4 MVP;\n"
-"in vec3 vCol;\n"
-"in vec2 vPos;\n"
-"out vec3 color;\n"
-"void main()\n"
-"{\n"
-"    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
-"    color = vCol;\n"
-"}\n";
+static const char *vertex_shader_text =
+  "#version 330\n"
+  "uniform mat4 MVP;\n"
+  "in vec3 vCol;\n"
+  "in vec2 vPos;\n"
+  "out vec3 color;\n"
+  "void main()\n"
+  "{\n"
+  "    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
+  "    color = vCol;\n"
+  "}\n";
 
-static const char* fragment_shader_text =
-"#version 330\n"
-"in vec3 color;\n"
-"out vec4 fragment;\n"
-"void main()\n"
-"{\n"
-"    fragment = vec4(color, 1.0);\n"
-"}\n";
+static const char *fragment_shader_text =
+  "#version 330\n"
+  "in vec3 color;\n"
+  "out vec4 fragment;\n"
+  "void main()\n"
+  "{\n"
+  "    fragment = vec4(color, 1.0);\n"
+  "}\n";
 
-static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
-{
-  cursor = { xpos, ypos };
+static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos) {
+  cursor = {xpos, ypos};
 }
 
-static void mouse_click_callback(GLFWwindow* window, int button, int action, int mods)
-{
-  if (action == GLFW_PRESS)
-  {
+static void mouse_click_callback(
+  GLFWwindow *window,
+  int button,
+  int action,
+  int mods
+) {
+  if (action == GLFW_PRESS) {
     // if (button == GLFW_MOUSE_BUTTON_1) { }
     pressed_cursor = cursor;
-    board_on_press(
-      &board,
-      window_size,
-      pressed_cursor);
-  }
-  else if (action == GLFW_RELEASE)
-  {
+    board_on_press(&board, window_size, pressed_cursor);
+  } else if (action == GLFW_RELEASE) {
     // printf("released, (%f, %f), (%f, %f)\n",
     //        pressed_cursor.x, pressed_cursor.y,
     //        cursor.x, cursor.y);
     // circle_color = {0.f, 0.f, 1.f};
-    auto click = Click{ .start = pressed_cursor, .end = cursor };
-    board_on_click(
-      &board,
-      window_size,
-      click);
+    auto click = Click{.start = pressed_cursor, .end = cursor};
+    board_on_click(&board, window_size, click);
   }
 }
 
-void mouse_drop_callback(GLFWwindow* window, int path_count, const char* paths[])
-{
+void mouse_drop_callback(
+  GLFWwindow *window,
+  int path_count,
+  const char *paths[]
+) {
   // paths is an n sized array of pointers to char
-  for (auto i = 0; i < path_count; i++)
-  {
+  for (auto i = 0; i < path_count; i++) {
     auto path = paths[i];
     puts(path);
   }
 }
 
-void window_resize_callback(GLFWwindow* window, int width, int height)
-{
-  window_size = { (double)width, (double)height };
+void window_resize_callback(GLFWwindow *window, int width, int height) {
+  window_size = {(double)width, (double)height};
 }
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
+static void key_callback(
+  GLFWwindow *window,
+  int key,
+  int scancode,
+  int action,
+  int mods
+) {
   if (action != GLFW_PRESS && action != GLFW_REPEAT) {
     return;
   }
   bool is_ctrl_pressed = mods & GLFW_MOD_CONTROL;
   if (key == GLFW_KEY_ESCAPE) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
-  }
-  else if (key == GLFW_KEY_LEFT)
-  {
+  } else if (key == GLFW_KEY_LEFT) {
     // if (board.circle_index > 0)
-    if (board.circle_index % board.size != 0)
-    {
+    if (board.circle_index % board.size != 0) {
       board.circle_index--;
     }
-  }
-  else if (key == GLFW_KEY_RIGHT) {
+  } else if (key == GLFW_KEY_RIGHT) {
     // if (board.circle_index < (board.size * board.size) - 1)
     if (board.circle_index % board.size < board.size - 1) {
       board.circle_index++;
     }
-  }
-  else if (key == GLFW_KEY_DOWN) {
+  } else if (key == GLFW_KEY_DOWN) {
     if (board.circle_index + board.size <= (board.size * board.size) - 1) {
       board.circle_index += board.size;
     }
-  }
-  else if (key == GLFW_KEY_UP) {
-    if (board.circle_index - board.size >= 0)
-    {
+  } else if (key == GLFW_KEY_UP) {
+    if (board.circle_index - board.size >= 0) {
       board.circle_index -= board.size;
     }
-  }
-  else if (is_ctrl_pressed && key == GLFW_KEY_MINUS) {
+  } else if (is_ctrl_pressed && key == GLFW_KEY_MINUS) {
     if (board.size > 1) {
       resize_board(&board, board.size - 1);
     }
-  }
-  else if (is_ctrl_pressed && key == GLFW_KEY_EQUAL) {
+  } else if (is_ctrl_pressed && key == GLFW_KEY_EQUAL) {
     resize_board(&board, board.size + 1);
-  }
-  else if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_R) {
+  } else if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_R) {
     puts("enter...");
   }
 }
 
 void gl_draw(
-  std::vector<Vertex>* vertices,
+  std::vector<Vertex> *vertices,
   DrawContext line_context,
   GLenum mode
 ) {
   glBindBuffer(GL_ARRAY_BUFFER, line_context.vertex_buffer);
   auto vertices_byte_size = sizeof(Vertex) * vertices->size();
   auto first_vertex = &(*vertices)[0];
-  glBufferData(GL_ARRAY_BUFFER, vertices_byte_size, first_vertex, GL_STATIC_DRAW);
+  glBufferData(
+    GL_ARRAY_BUFFER,
+    vertices_byte_size,
+    first_vertex,
+    GL_STATIC_DRAW
+  );
 
   glBindVertexArray(line_context.vertex_array);
   glEnableVertexAttribArray(line_context.vpos_location);
-  glVertexAttribPointer(line_context.vpos_location, 2, GL_FLOAT, GL_FALSE,
-    sizeof(Vertex), (void*)offsetof(Vertex, position));
+  glVertexAttribPointer(
+    line_context.vpos_location,
+    2,
+    GL_FLOAT,
+    GL_FALSE,
+    sizeof(Vertex),
+    (void *)offsetof(Vertex, position)
+  );
   glEnableVertexAttribArray(line_context.vcol_location);
-  glVertexAttribPointer(line_context.vcol_location, 3, GL_FLOAT, GL_FALSE,
-    sizeof(Vertex), (void*)offsetof(Vertex, color));
+  glVertexAttribPointer(
+    line_context.vcol_location,
+    3,
+    GL_FLOAT,
+    GL_FALSE,
+    sizeof(Vertex),
+    (void *)offsetof(Vertex, color)
+  );
 
   glDrawArrays(mode, 0, vertices->size());
 }
 
 std::vector<Vertex> get_line_vertices() {
-  auto all_lines = concat_vector(&board.horizontal_lines, &board.vertical_lines);
+  // todo: fmt fix
+  auto all_lines =
+    concat_vector(&board.horizontal_lines, &board.vertical_lines);
   auto all_vertices = std::vector<Vertex>();
-  for (auto l : all_lines)
-  {
+  for (auto l : all_lines) {
     all_vertices.push_back(l.start);
     all_vertices.push_back(l.end);
   }
@@ -183,25 +191,32 @@ std::vector<Vertex> get_circle_vertices(float scaler, vec3 color) {
   float max_angle = (M_PI * 2) / triangle_count;
   float current_angle = 0;
   auto triangles = std::vector<Triangle>();
-  for (auto i = 0; i < triangle_count; i++)
-  {
+  for (auto i = 0; i < triangle_count; i++) {
     auto start = Vertex{
-        .position = {cos(current_angle) * scaler, sin(current_angle) * scaler},
-        .color = {color[0], color[1], color[2]} };
+      .position = {cos(current_angle) * scaler, sin(current_angle) * scaler},
+      .color = {color[0], color[1], color[2]}};
     auto end = Vertex{
-        .position = {cos(current_angle + max_angle) * scaler, sin(current_angle + max_angle) * scaler},
-        .color = {color[0], color[1], color[2]} };
+      .position =
+        {
+          cos(current_angle + max_angle) * scaler,
+          sin(current_angle + max_angle) * scaler,
+        },
+      .color = {color[0], color[1], color[2]},
+    };
     auto triangle = Triangle{
-        .a = {.position = {0, 0},
-              .color = {color[0], color[1], color[2]}},
-        start,
-        end };
+      .a =
+        {
+          .position = {0, 0},
+          .color = {color[0], color[1], color[2]},
+        },
+      start,
+      end};
     current_angle += max_angle;
     triangles.push_back(triangle);
   }
 
   auto all_vertices = std::vector<Vertex>();
-  for (auto& l : triangles) {
+  for (auto &l : triangles) {
     all_vertices.push_back(l.a);
     all_vertices.push_back(l.b);
     all_vertices.push_back(l.c);
@@ -219,19 +234,19 @@ void update_points(double current_time, float scaler) {
 
 int main(void) {
   srand(time(0));
-  glfwSetErrorCallback([](int error, const char* description) -> void
-    { fprintf(stderr, "Error: %s\n", description); });
+  glfwSetErrorCallback([](int error, const char *description) -> void {
+    fprintf(stderr, "Error: %s\n", description);
+  });
 
-  if (!glfwInit())
-    exit(EXIT_FAILURE);
+  if (!glfwInit()) exit(EXIT_FAILURE);
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  GLFWwindow* window = glfwCreateWindow(window_size.x, window_size.y, "glfw", NULL, NULL);
-  if (!window)
-  {
+  GLFWwindow *window =
+    glfwCreateWindow(window_size.x, window_size.y, "glfw", NULL, NULL);
+  if (!window) {
     glfwTerminate();
     exit(EXIT_FAILURE);
   }
@@ -294,8 +309,12 @@ int main(void) {
     mat4x4_mul(model_view_proj, maybe_projection, maybe_model);
 
     glUseProgram(program);
-    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&model_view_proj);
-
+    glUniformMatrix4fv(
+      mvp_location,
+      1,
+      GL_FALSE,
+      (const GLfloat *)&model_view_proj
+    );
 
     glClearColor(.5f, .5f, .5f, 1.f);
 
@@ -307,7 +326,12 @@ int main(void) {
     auto offset_x = -board.gl_draw_bounds + scaler + (scaler * 2 * grid_x);
     auto offset_y = board.gl_draw_bounds - scaler - (scaler * 2 * grid_y);
     mat4x4_translate(model_view_proj, offset_x, offset_y, 0);
-    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&model_view_proj);
+    glUniformMatrix4fv(
+      mvp_location,
+      1,
+      GL_FALSE,
+      (const GLfloat *)&model_view_proj
+    );
 
     auto circle_vertices = get_circle_vertices(scaler, board.circle_color);
     gl_draw(&circle_vertices, triangle_context, GL_TRIANGLES);

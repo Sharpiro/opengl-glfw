@@ -3,15 +3,13 @@
 #include "vec.h"
 #include <vector>
 
-struct Triangle
-{
+struct Triangle {
   Vertex a;
   Vertex b;
   Vertex c;
 };
 
-struct Line
-{
+struct Line {
   Vertex start;
   Vertex end;
 };
@@ -34,7 +32,7 @@ struct Click {
 
 enum SquareColor {
   White,
-  Black
+  Black,
 };
 
 struct Square {
@@ -52,10 +50,10 @@ struct Board {
   std::vector<Line> vertical_lines;
 };
 
-void resize_board(Board* board, int new_size);
+void resize_board(Board *board, int new_size);
 
-void board_on_press(Board* board, Point window, Point click);
+void board_on_press(Board *board, Point window, Point click);
 
-void board_on_click(Board* board, Point window, Click click);
+void board_on_click(Board *board, Point window, Click click);
 
 bool point_equals(Point pressed_cursor, Point cursor);
