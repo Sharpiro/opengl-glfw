@@ -9,8 +9,8 @@
       "options": {
         "cwd": "${cwd}"
       },
-      "problemMatcher": [
-        "$gcc"
+      "problemMatcher":[
+        ""
       ],
       "group": {
         "kind": "build",

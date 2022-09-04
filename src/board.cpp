@@ -1,5 +1,28 @@
 #include "board.h"
+#include "temp.h"
 #include <stdio.h>
+
+Board board_new(int board_size, int circle_size) {
+  auto board = Board{
+    .size = board_size,
+    // .squares = std::vector<Square>(board_size * board_size),
+    .circle_size = circle_size,
+    .circles = std::vector<Circle>(circle_size),
+    .gl_draw_bounds = .5,
+  };
+
+  float simple_color = 1;
+  for (auto i = 0; i < (int)board.circles.size(); i++) {
+    simple_color -= 0.25;
+    board.circles[i] = Circle{
+      .id = i + 1,
+      .index = i,
+      .original_color = {0, simple_color, 0},
+      .current_color = {0, simple_color, 0},
+    };
+  }
+  return board;
+}
 
 static void resize_board_horizontal(Board *board, int new_size) {
   board->horizontal_lines = std::vector<Line>{};
@@ -79,10 +102,15 @@ static void resize_board_vertical(Board *board, int new_size) {
   board->horizontal_lines.push_back(line);
 }
 
+// todo: just re-init board?
 void resize_board(Board *board, int new_size) {
-  board->circle_index = 0;
+  // board->circle_index = 0;
   board->size = new_size;
   board->squares = std::vector<Square>(board->size * board->size);
+  // board->circles = std::vector<Circle>(board->circle_size);
+  // for (auto &circle : board->circles) {
+  //   //
+  // }
   // for (auto &square : board->squares) {
   //   //
   // }
@@ -135,8 +163,8 @@ static int get_square_index(
 
   auto square_x = (int)floor((click.x - x_start) / square_pixels_x);
   auto square_y = (int)floor((click.y - y_start) / square_pixels_y);
-  printf("window location (%f, %f)\n", click.x, click.y);
-  printf("board  location (%d, %d)\n", square_x, square_y);
+  // printf("window location (%f, %f)\n", click.x, click.y);
+  // printf("board  location (%d, %d)\n", square_x, square_y);
 
   auto click_index = square_y * board_size + square_x;
   return click_index;
@@ -145,15 +173,22 @@ static int get_square_index(
 void board_on_press(Board *board, Point window, Point click) {
   auto board_dimensions = get_board_dimensions(board, window);
   auto press_index = get_square_index(board_dimensions, board->size, click);
-  if (board->circle_index == press_index) {
-    vec3 dark_green = {0.f, .6f, .0f};
-    memcpy(&board->circle_color, &dark_green, sizeof(vec3));
+
+  for (auto &circle : board->circles) {
+    if (circle.index == press_index) {
+      vec3 dark_green = {0.f, .6f, .0f};
+      memcpy(&circle.current_color, &dark_green, sizeof(vec3));
+      break;
+    }
   }
 }
 
-void board_on_click(Board *board, Point window, Click click) {
-  vec3 green = {0.f, 1.f, 0.f};
-  memcpy(&board->circle_color, &green, sizeof(vec3));
+BoardState board_on_release(Board *board, Point window, Click click) {
+  for (auto &circle : board->circles) {
+    memcpy(&circle.current_color, &circle.original_color, sizeof(vec3));
+  }
+
+  auto board_state = BoardState{};
   auto board_dimensions = get_board_dimensions(board, window);
   auto click_start_index =
     get_square_index(board_dimensions, board->size, click.start);
@@ -161,13 +196,18 @@ void board_on_click(Board *board, Point window, Click click) {
     get_square_index(board_dimensions, board->size, click.end);
   if (click_start_index == -1 || click_end_index == -1) {
     puts("outside board");
-    return;
+    return board_state;
   }
-  if (click_start_index == board->circle_index) {
-    board->circle_index = click_end_index;
+
+  for (auto &circle : board->circles) {
+    if (click_start_index == circle.index) {
+      auto changed_circle = circle;
+      changed_circle.index = click_end_index;
+      board_state.changed_circles.push_back(changed_circle);
+    }
   }
-  auto has_circle = click_end_index == board->circle_index;
-  printf("has circle: %s\n", has_circle ? "true" : "false");
+
+  return board_state;
 }
 
 // convert pixels to opengl coords
@@ -178,4 +218,11 @@ void board_on_click(Board *board, Point window, Click click) {
 
 bool point_equals(Point a, Point b) {
   return a.x == b.x && a.y == b.y;
+}
+
+Circle *find_circle(Board *board, int id) {
+  for (auto &circle : board->circles) {
+    if (circle.id == id) return &circle;
+  }
+  panic("invalid circle id: %d\n", 99);
 }

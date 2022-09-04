@@ -15,8 +15,10 @@ struct Line {
 };
 
 struct Circle {
-  int circle_index;
-  vec3 circle_color;
+  int id;
+  int index;
+  vec3 original_color;
+  vec3 current_color;
   // std::vector<Triangle> triangles;
 };
 
@@ -43,17 +45,25 @@ struct Square {
 struct Board {
   int size;
   std::vector<Square> squares;
-  int circle_index;
-  vec3 circle_color;
+  // int circle_index;
+  // vec3 circle_color;
+  int circle_size;
+  std::vector<Circle> circles;
   float gl_draw_bounds;
   std::vector<Line> horizontal_lines;
   std::vector<Line> vertical_lines;
 };
 
+struct BoardState {
+  std::vector<Circle> changed_circles;
+};
+
+Board board_new(int board_size, int circle_size);
+
 void resize_board(Board *board, int new_size);
 
 void board_on_press(Board *board, Point window, Point click);
 
-void board_on_click(Board *board, Point window, Click click);
+BoardState board_on_release(Board *board, Point window, Click click);
 
-bool point_equals(Point pressed_cursor, Point cursor);
+Circle *find_circle(Board *board, int id);

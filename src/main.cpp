@@ -3,6 +3,18 @@
 #define GLAD_GL_IMPLEMENTATION
 #define GLFW_INCLUDE_NONE
 
+#define HORZ_GAME 1
+#define VERT_GAME 2
+
+#if GAME == HORZ_GAME
+#include "games/horz_game.h"
+#endif
+#if GAME == VERT_GAME
+#include "games/vert_game.h"
+#endif
+#if !GAME
+#error no game specified
+#endif
 #include "board.h"
 #include "gl.hpp"
 #include "tools.hpp"
@@ -13,20 +25,14 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 #include <vector>
 
 auto window_size = Point{600, 600};
 auto cursor = Point{0.0, 0.0};
 auto pressed_cursor = Point{0.0, 0.0};
-// auto board_size = 4;
-auto board = Board{
-  // .size = board_size,
-  .size = 4,
-  // .squares = std::vector<Square>(board_size * board_size),
-  .circle_index = 0,
-  .circle_color = {0.f, 1.f, 0.f},
-  .gl_draw_bounds = .5,
-};
+auto board = board_new(3, 1);
+auto game_state = GameSate{};
 auto scaler = 1.f / (board.size * 2);
 auto point_vertices = std::vector<Vertex>{
   {.color = {1, 0, 0}},
@@ -64,17 +70,25 @@ static void mouse_click_callback(
   int action,
   int mods
 ) {
-  if (action == GLFW_PRESS) {
-    // if (button == GLFW_MOUSE_BUTTON_1) { }
-    pressed_cursor = cursor;
-    board_on_press(&board, window_size, pressed_cursor);
-  } else if (action == GLFW_RELEASE) {
-    // printf("released, (%f, %f), (%f, %f)\n",
-    //        pressed_cursor.x, pressed_cursor.y,
-    //        cursor.x, cursor.y);
-    // circle_color = {0.f, 0.f, 1.f};
-    auto click = Click{.start = pressed_cursor, .end = cursor};
-    board_on_click(&board, window_size, click);
+  if (game_state.game_over) return;
+  if (button == GLFW_MOUSE_BUTTON_1) {
+    if (action == GLFW_PRESS) {
+      pressed_cursor = cursor;
+      board_on_press(&board, window_size, pressed_cursor);
+    } else if (action == GLFW_RELEASE) {
+      auto click = Click{.start = pressed_cursor, .end = cursor};
+      auto board_state = board_on_release(&board, window_size, click);
+
+      common();
+#if GAME == VERT_GAME
+      vert_on_mouse_release(&board, board_state);
+#endif
+#if GAME == HORZ_GAME
+      horz_on_mouse_release(&board, board_state);
+#endif
+    }
+  } else {
+    puts("wrong mouse button");
   }
 }
 
@@ -108,23 +122,21 @@ static void key_callback(
   if (key == GLFW_KEY_ESCAPE) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
   } else if (key == GLFW_KEY_LEFT) {
-    // if (board.circle_index > 0)
-    if (board.circle_index % board.size != 0) {
-      board.circle_index--;
-    }
+    // if (board.circle_index % board.size != 0) {
+    //   board.circle_index--;
+    // }
   } else if (key == GLFW_KEY_RIGHT) {
-    // if (board.circle_index < (board.size * board.size) - 1)
-    if (board.circle_index % board.size < board.size - 1) {
-      board.circle_index++;
-    }
+    // if (board.circle_index % board.size < board.size - 1) {
+    //   board.circle_index++;
+    // }
   } else if (key == GLFW_KEY_DOWN) {
-    if (board.circle_index + board.size <= (board.size * board.size) - 1) {
-      board.circle_index += board.size;
-    }
+    // if (board.circle_index + board.size <= (board.size * board.size) - 1) {
+    //   board.circle_index += board.size;
+    // }
   } else if (key == GLFW_KEY_UP) {
-    if (board.circle_index - board.size >= 0) {
-      board.circle_index -= board.size;
-    }
+    // if (board.circle_index - board.size >= 0) {
+    //   board.circle_index -= board.size;
+    // }
   } else if (is_ctrl_pressed && key == GLFW_KEY_MINUS) {
     if (board.size > 1) {
       resize_board(&board, board.size - 1);
@@ -132,7 +144,6 @@ static void key_callback(
   } else if (is_ctrl_pressed && key == GLFW_KEY_EQUAL) {
     resize_board(&board, board.size + 1);
   } else if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_R) {
-    puts("enter...");
   }
 }
 
@@ -232,6 +243,15 @@ void update_points(double current_time, float scaler) {
   moving_point->position[1] = y;
 }
 
+void update() {
+#if GAME == VERT_GAME
+  vert_update(&board, &game_state);
+#endif
+#if GAME == HORZ_GAME
+  horz_update(&board, &game_state);
+#endif
+}
+
 int main(void) {
   srand(time(0));
   glfwSetErrorCallback([](int error, const char *description) -> void {
@@ -293,6 +313,8 @@ int main(void) {
     auto current_time = time.tv_sec + (double)time.tv_usec / 1000 / 1000;
     update_points(current_time, scaler);
 
+    update();
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     // const float ratio = width / (float)height;
@@ -321,27 +343,43 @@ int main(void) {
     auto line_vertices = get_line_vertices();
     gl_draw(&line_vertices, line_context, GL_LINES);
 
-    auto grid_x = board.circle_index % board.size;
-    auto grid_y = (int)floor(board.circle_index / board.size);
-    auto offset_x = -board.gl_draw_bounds + scaler + (scaler * 2 * grid_x);
-    auto offset_y = board.gl_draw_bounds - scaler - (scaler * 2 * grid_y);
-    mat4x4_translate(model_view_proj, offset_x, offset_y, 0);
-    glUniformMatrix4fv(
-      mvp_location,
-      1,
-      GL_FALSE,
-      (const GLfloat *)&model_view_proj
-    );
+    for (auto &circle : board.circles) {
+      // circle = Circle{};
+      auto grid_x = circle.index % board.size;
+      auto grid_y = (int)floor(circle.index / board.size);
+      auto offset_x = -board.gl_draw_bounds + scaler + (scaler * 2 * grid_x);
+      auto offset_y = board.gl_draw_bounds - scaler - (scaler * 2 * grid_y);
+      mat4x4_translate(model_view_proj, offset_x, offset_y, 0);
+      glUniformMatrix4fv(
+        mvp_location,
+        1,
+        GL_FALSE,
+        (const GLfloat *)&model_view_proj
+      );
 
-    auto circle_vertices = get_circle_vertices(scaler, board.circle_color);
-    gl_draw(&circle_vertices, triangle_context, GL_TRIANGLES);
+      auto circle_vertices = get_circle_vertices(scaler, circle.current_color);
+      gl_draw(&circle_vertices, triangle_context, GL_TRIANGLES);
 
-    glPointSize(10);
-    gl_draw(&point_vertices, point_context, GL_POINTS);
+      if (!game_state.game_over) {
+        glPointSize(10);
+        gl_draw(&point_vertices, point_context, GL_POINTS);
+      }
+    }
+
+    if (game_state.game_over) {
+      if (!game_state.dumb_bool) {
+        game_state.dumb_bool = true;
+        puts("you win");
+      }
+    }
 
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+
+  // while (true) {
+  //   sleep(1);
+  // }
 
   glfwDestroyWindow(window);
 
