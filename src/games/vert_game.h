@@ -9,8 +9,8 @@ struct GameSate {
 
 void common();
 
-void vert_on_mouse_press();
+void vert_on_mouse_press(Board *board, BoardPressState state);
 
-void vert_on_mouse_release(Board *board, BoardState board_state);
+void vert_on_mouse_release(Board *board, BoardReleaseState board_state);
 
 void vert_update(Board *board, GameSate *game_state);

@@ -9,7 +9,7 @@ void horz_on_mouse_press() {
   //
 }
 
-void horz_on_mouse_release(Board *board, BoardState board_state) {
+void horz_on_mouse_release(Board *board, BoardReleaseState board_state) {
   for (auto &changed_circle : board_state.changed_circles) {
     auto board_circle = find_circle(board, changed_circle.id);
     if (changed_circle.index != board_circle->index) {

@@ -35,4 +35,5 @@ BreakBeforeBraces: Attach
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: WithoutElse
 # BreakBeforeBinaryOperators: All
-# AlignOperands: Align
+AlignOperands: DontAlign
+BreakBeforeTernaryOperators: true

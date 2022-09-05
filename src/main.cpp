@@ -8,11 +8,9 @@
 
 #if GAME == HORZ_GAME
 #include "games/horz_game.h"
-#endif
-#if GAME == VERT_GAME
+#elif GAME == VERT_GAME
 #include "games/vert_game.h"
-#endif
-#if !GAME
+#else
 #error no game specified
 #endif
 #include "board.h"
@@ -74,17 +72,27 @@ static void mouse_click_callback(
   if (button == GLFW_MOUSE_BUTTON_1) {
     if (action == GLFW_PRESS) {
       pressed_cursor = cursor;
-      board_on_press(&board, window_size, pressed_cursor);
-    } else if (action == GLFW_RELEASE) {
-      auto click = Click{.start = pressed_cursor, .end = cursor};
-      auto board_state = board_on_release(&board, window_size, click);
-
-      common();
-#if GAME == VERT_GAME
-      vert_on_mouse_release(&board, board_state);
+      auto state = board_on_press(&board, window_size, pressed_cursor);
+      // #if GAME == HORZ_GAME
+      // #include "games/horz_game.h"
+      // #elif GAME == VERT_GAME
+      // #include "games/vert_game.h"
+      // #else
+      // #error no game specified
+      // #endif
+#if GAME == HORZ_GAME
+      // horz_on_mouse_press(&board, board_state);
+#elif GAME == VERT_GAME
+      vert_on_mouse_press(&board, state);
 #endif
+    } else if (action == GLFW_RELEASE) {
+      auto click = Click{.press = pressed_cursor, .release = cursor};
+      auto board_state = board_on_release(&board, window_size, click);
+      common();
 #if GAME == HORZ_GAME
       horz_on_mouse_release(&board, board_state);
+#elif GAME == VERT_GAME
+      vert_on_mouse_release(&board, board_state);
 #endif
     }
   } else {
@@ -244,11 +252,10 @@ void update_points(double current_time, float scaler) {
 }
 
 void update() {
-#if GAME == VERT_GAME
-  vert_update(&board, &game_state);
-#endif
 #if GAME == HORZ_GAME
   horz_update(&board, &game_state);
+#elif GAME == VERT_GAME
+  vert_update(&board, &game_state);
 #endif
 }
 

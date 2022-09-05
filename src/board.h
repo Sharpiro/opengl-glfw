@@ -28,8 +28,8 @@ struct Point {
 };
 
 struct Click {
-  Point start;
-  Point end;
+  Point press;
+  Point release;
 };
 
 enum SquareColor {
@@ -38,8 +38,10 @@ enum SquareColor {
 };
 
 struct Square {
-  int index;
-  SquareColor color;
+  int x_index;
+  int y_index;
+  // int index;
+  // SquareColor color;
 };
 
 struct Board {
@@ -54,16 +56,25 @@ struct Board {
   std::vector<Line> vertical_lines;
 };
 
-struct BoardState {
-  std::vector<Circle> changed_circles;
+struct BoardPressState {
+  bool in_bounds;
+  int press_index = -1;
+};
+
+struct BoardReleaseState {
+  bool valid_click;
+  int press_index = -1;
+  int release_index = -1;
 };
 
 Board board_new(int board_size, int circle_size);
 
 void resize_board(Board *board, int new_size);
 
-void board_on_press(Board *board, Point window, Point click);
+BoardPressState board_on_press(Board *board, Point window, Point click);
 
-BoardState board_on_release(Board *board, Point window, Click click);
+BoardReleaseState board_on_release(Board *board, Point window, Click click);
 
 Circle *find_circle(Board *board, int id);
+
+Square get_square(int board_size, int index);

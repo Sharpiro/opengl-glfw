@@ -5,7 +5,6 @@
 Board board_new(int board_size, int circle_size) {
   auto board = Board{
     .size = board_size,
-    // .squares = std::vector<Square>(board_size * board_size),
     .circle_size = circle_size,
     .circles = std::vector<Circle>(circle_size),
     .gl_draw_bounds = .5,
@@ -102,18 +101,9 @@ static void resize_board_vertical(Board *board, int new_size) {
   board->horizontal_lines.push_back(line);
 }
 
-// todo: just re-init board?
 void resize_board(Board *board, int new_size) {
-  // board->circle_index = 0;
   board->size = new_size;
   board->squares = std::vector<Square>(board->size * board->size);
-  // board->circles = std::vector<Circle>(board->circle_size);
-  // for (auto &circle : board->circles) {
-  //   //
-  // }
-  // for (auto &square : board->squares) {
-  //   //
-  // }
   resize_board_horizontal(board, new_size);
   resize_board_vertical(board, new_size);
 }
@@ -163,58 +153,34 @@ static int get_square_index(
 
   auto square_x = (int)floor((click.x - x_start) / square_pixels_x);
   auto square_y = (int)floor((click.y - y_start) / square_pixels_y);
-  // printf("window location (%f, %f)\n", click.x, click.y);
-  // printf("board  location (%d, %d)\n", square_x, square_y);
 
   auto click_index = square_y * board_size + square_x;
   return click_index;
 }
 
-void board_on_press(Board *board, Point window, Point click) {
+BoardPressState board_on_press(Board *board, Point window, Point press) {
   auto board_dimensions = get_board_dimensions(board, window);
-  auto press_index = get_square_index(board_dimensions, board->size, click);
-
-  for (auto &circle : board->circles) {
-    if (circle.index == press_index) {
-      vec3 dark_green = {0.f, .6f, .0f};
-      memcpy(&circle.current_color, &dark_green, sizeof(vec3));
-      break;
-    }
-  }
+  auto press_index = get_square_index(board_dimensions, board->size, press);
+  auto state = press_index >= 0
+    ? BoardPressState{.in_bounds = true, .press_index = press_index}
+    : BoardPressState{};
+  return state;
 }
 
-BoardState board_on_release(Board *board, Point window, Click click) {
-  for (auto &circle : board->circles) {
-    memcpy(&circle.current_color, &circle.original_color, sizeof(vec3));
-  }
-
-  auto board_state = BoardState{};
+BoardReleaseState board_on_release(Board *board, Point window, Click click) {
   auto board_dimensions = get_board_dimensions(board, window);
-  auto click_start_index =
-    get_square_index(board_dimensions, board->size, click.start);
-  auto click_end_index =
-    get_square_index(board_dimensions, board->size, click.end);
-  if (click_start_index == -1 || click_end_index == -1) {
-    puts("outside board");
-    return board_state;
-  }
-
-  for (auto &circle : board->circles) {
-    if (click_start_index == circle.index) {
-      auto changed_circle = circle;
-      changed_circle.index = click_end_index;
-      board_state.changed_circles.push_back(changed_circle);
-    }
-  }
-
+  auto press_index =
+    get_square_index(board_dimensions, board->size, click.press);
+  auto release_index =
+    get_square_index(board_dimensions, board->size, click.release);
+  auto valid_click = press_index != -1 && release_index != -1;
+  auto board_state = BoardReleaseState{
+    .valid_click = valid_click,
+    .press_index = press_index,
+    .release_index = release_index,
+  };
   return board_state;
 }
-
-// convert pixels to opengl coords
-// auto x = 2.f / window.x;
-// auto y = 2.f / window.y;
-// auto xx = x * click.x - 1;
-// auto yy = (y * click.y - 1) * -1;
 
 bool point_equals(Point a, Point b) {
   return a.x == b.x && a.y == b.y;
@@ -225,4 +191,11 @@ Circle *find_circle(Board *board, int id) {
     if (circle.id == id) return &circle;
   }
   panic("invalid circle id: %d\n", 99);
+}
+
+Square get_square(int board_size, int index) {
+  auto y_index = index / board_size;
+  auto x_index = index % board_size;
+  auto square = Square{.x_index = x_index, .y_index = y_index};
+  return square;
 }
