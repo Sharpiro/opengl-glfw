@@ -1,24 +1,34 @@
-#include "horz_game.h"
+#include "rev_game.h"
 #include <stdio.h>
 
-void common() {
-  puts("running horz game");
+GameSate rev_init() {
+  return GameSate{.name = "Horz Game"};
 }
 
-void horz_on_mouse_press() {
-  //
-}
-
-void horz_on_mouse_release(Board *board, BoardReleaseState board_state) {
-  for (auto &changed_circle : board_state.changed_circles) {
-    auto board_circle = find_circle(board, changed_circle.id);
-    if (changed_circle.index != board_circle->index) {
-      board_circle->index = changed_circle.index;
+void rev_on_mouse_press(Board *board, BoardPressState state) {
+  for (auto &circle : board->circles) {
+    if (circle.index == state.press_index) {
+      vec3 dark_green = {0.f, .6f, .0f};
+      memcpy(&circle.current_color, &dark_green, sizeof(vec3));
+      break;
     }
   }
 }
 
-void horz_update(Board *board, GameSate *game_state) {
+void rev_on_mouse_release(Board *board, BoardReleaseState state) {
+  for (auto &circle : board->circles) {
+    memcpy(&circle.current_color, &circle.original_color, sizeof(vec3));
+    if (state.valid_click && state.press_index == circle.index) {
+      auto valid_move = true;
+      if (valid_move) {
+        circle.index = state.release_index;
+      }
+      break;
+    }
+  }
+}
+
+void rev_update(Board *board, GameSate *game_state) {
   if (game_state->game_over) return;
 
   auto start = board->size - 1;

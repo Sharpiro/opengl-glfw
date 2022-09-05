@@ -3,17 +3,8 @@
 #define GLAD_GL_IMPLEMENTATION
 #define GLFW_INCLUDE_NONE
 
-#define HORZ_GAME 1
-#define VERT_GAME 2
-
-#if GAME == HORZ_GAME
-#include "games/horz_game.h"
-#elif GAME == VERT_GAME
-#include "games/vert_game.h"
-#else
-#error no game specified
-#endif
 #include "board.h"
+#include "games/rev_game.h"
 #include "gl.hpp"
 #include "tools.hpp"
 #include <GLFW/glfw3.h>
@@ -30,7 +21,7 @@ auto window_size = Point{600, 600};
 auto cursor = Point{0.0, 0.0};
 auto pressed_cursor = Point{0.0, 0.0};
 auto board = board_new(3, 1);
-auto game_state = GameSate{};
+auto game_state = rev_init();
 auto scaler = 1.f / (board.size * 2);
 auto point_vertices = std::vector<Vertex>{
   {.color = {1, 0, 0}},
@@ -73,27 +64,11 @@ static void mouse_click_callback(
     if (action == GLFW_PRESS) {
       pressed_cursor = cursor;
       auto state = board_on_press(&board, window_size, pressed_cursor);
-      // #if GAME == HORZ_GAME
-      // #include "games/horz_game.h"
-      // #elif GAME == VERT_GAME
-      // #include "games/vert_game.h"
-      // #else
-      // #error no game specified
-      // #endif
-#if GAME == HORZ_GAME
-      // horz_on_mouse_press(&board, board_state);
-#elif GAME == VERT_GAME
-      vert_on_mouse_press(&board, state);
-#endif
+      rev_on_mouse_press(&board, state);
     } else if (action == GLFW_RELEASE) {
       auto click = Click{.press = pressed_cursor, .release = cursor};
       auto board_state = board_on_release(&board, window_size, click);
-      common();
-#if GAME == HORZ_GAME
-      horz_on_mouse_release(&board, board_state);
-#elif GAME == VERT_GAME
-      vert_on_mouse_release(&board, board_state);
-#endif
+      rev_on_mouse_release(&board, board_state);
     }
   } else {
     puts("wrong mouse button");
@@ -252,11 +227,7 @@ void update_points(double current_time, float scaler) {
 }
 
 void update() {
-#if GAME == HORZ_GAME
-  horz_update(&board, &game_state);
-#elif GAME == VERT_GAME
-  vert_update(&board, &game_state);
-#endif
+  rev_update(&board, &game_state);
 }
 
 int main(void) {
@@ -272,7 +243,7 @@ int main(void) {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   GLFWwindow *window =
-    glfwCreateWindow(window_size.x, window_size.y, "glfw", NULL, NULL);
+    glfwCreateWindow(window_size.x, window_size.y, game_state.name, NULL, NULL);
   if (!window) {
     glfwTerminate();
     exit(EXIT_FAILURE);

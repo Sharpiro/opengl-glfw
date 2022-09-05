@@ -1,10 +1,11 @@
-#include "vert_game.h"
+#include "rev_game.h"
 #include <stdio.h>
 
-void common() {
+GameSate rev_init() {
+  return GameSate{.name = "Vert Game"};
 }
 
-void vert_on_mouse_press(Board *board, BoardPressState state) {
+void rev_on_mouse_press(Board *board, BoardPressState state) {
   for (auto &circle : board->circles) {
     if (circle.index == state.press_index) {
       vec3 dark_green = {0.f, .6f, .0f};
@@ -43,7 +44,7 @@ static bool is_valid_move(int board_size, int source_index, int dest_index) {
   return false;
 }
 
-void vert_on_mouse_release(Board *board, BoardReleaseState state) {
+void rev_on_mouse_release(Board *board, BoardReleaseState state) {
   for (auto &circle : board->circles) {
     memcpy(&circle.current_color, &circle.original_color, sizeof(vec3));
     if (state.valid_click && state.press_index == circle.index) {
@@ -57,14 +58,14 @@ void vert_on_mouse_release(Board *board, BoardReleaseState state) {
   }
 }
 
-void vert_update(Board *board, GameSate *game_state) {
+void rev_update(Board *board, GameSate *game_state) {
   if (game_state->game_over) return;
 
   auto start = board->size * (board->size - 1);
   for (auto i = start; i < board->size * board->size; i++) {
     for (auto circle : board->circles) {
       if (circle.index == i) {
-        // game_state->game_over = true;
+        game_state->game_over = true;
       }
     }
   }
